@@ -26,10 +26,16 @@ async function getContainer(req, res, next) {
     let container = await Container.findOne({ containerNumber });
     if (!container) {
       const tracking = await lookupContainer(containerNumber);
-      container = await Container.create({
-        ...tracking,
-        history: [{ status: tracking.currentStatus, updatedAt: tracking.lastUpdated, source: 'mock-lookup', metadata: tracking.containerData }]
-      });
+      try {
+        container = await Container.create({
+          ...tracking,
+          history: [{ status: tracking.currentStatus, updatedAt: tracking.lastUpdated, source: 'mock-lookup', metadata: tracking.containerData }]
+        });
+      } catch (error) {
+        // Another lookup may have persisted the same unique number meanwhile; return its canonical record.
+        if (error?.code !== 11000) throw error;
+        container = await Container.findOne({ containerNumber });
+      }
     }
     return res.json({ data: serialize(container) });
   } catch (error) { return next(error); }

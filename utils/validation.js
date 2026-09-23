@@ -1,5 +1,6 @@
 const { z } = require('zod');
 const { isValidContainerNumber, normalizeContainerNumber } = require('./containerNumber');
+const { AppError } = require('./AppError');
 
 const containerNumber = z.string()
   .transform(normalizeContainerNumber)
@@ -9,24 +10,24 @@ const createContainerSchema = z.object({
   containerNumber,
   currentStatus: z.string().trim().min(1).max(100),
   containerData: z.record(z.unknown()).optional().default({})
-});
+}).strict();
 
 const statusUpdateSchema = z.object({
   currentStatus: z.string().trim().min(1).max(100),
   containerData: z.record(z.unknown()).optional()
-});
+}).strict();
 
 const listContainersSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
   status: z.string().trim().min(1).max(100).optional()
-});
+}).strict();
 
 function validate(schema, location) {
   return (req, res, next) => {
     const parsed = schema.safeParse(req[location]);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
+      return next(new AppError(400, 'Validation failed', parsed.error.flatten()));
     }
     req[location] = parsed.data;
     next();

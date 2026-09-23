@@ -3,7 +3,7 @@ const controller = require('../controllers/containerController');
 const { containerNumber, createContainerSchema, statusUpdateSchema, listContainersSchema, validate } = require('../utils/validation');
 
 const router = express.Router();
-const paramsSchema = require('zod').z.object({ containerNumber });
+const paramsSchema = require('zod').z.object({ containerNumber }).strict();
 
 router.route('/')
   .post(validate(createContainerSchema, 'body'), controller.createContainer)
